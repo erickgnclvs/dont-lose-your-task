@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>dont lose ur task</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="header">
+    <img src="images/icon.png" alt="Crying Cat" class="header-icon">
+    <h3>dont lose ur task</h3>
+  </div>
+  
+  <div class="content">
+    <div class="info-container">
+      <div class="info-item">
+        <span class="label">Task ID:</span>
+        <span id="taskId" class="value">Loading...</span>
+      </div>
+      <div class="info-item">
+        <span class="label">Attempt ID:</span>
+        <span id="attemptId" class="value">Loading...</span>
+      </div>
+    </div>
+    
+    <div id="error-message" class="error" style="display: none;"></div>
+
+    <div class="buttons">
+      <button id="forceClaimBtn" disabled>Force Claim</button>
+      <button id="increaseTimerBtn" disabled>Increase Timer</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html> 

@@ -1,0 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap');
+
+body {
+  font-family: 'Nunito', sans-serif;
+  width: 280px;
+  padding: 0;
+  margin: 0;
+  background-color: #f0f4ff;
+  color: #333;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #96c7ff 0%, #c4e0ff 100%);
+  padding: 12px 15px;
+  border-bottom: 2px solid #7ab3ff;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 10px;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+h3 {
+  margin: 0;
+  font-weight: 800;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #2d5386;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.7);
+}
+
+.content {
+  padding: 15px;
+}
+
+.info-container {
+  background-color: white;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border: 1px solid #e0e9ff;
+}
+
+.info-item {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  font-weight: 700;
+  color: #3f6cb4;
+  margin-bottom: 3px;
+  font-size: 13px;
+}
+
+.value {
+  font-family: monospace;
+  background-color: #f5f8ff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  word-break: break-all;
+  font-size: 13px;
+  border: 1px solid #e0e9ff;
+}
+
+.error {
+  color: #e74c3c;
+  font-style: italic;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #ffeaea;
+  border: 1px solid #ffcccb;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* Removed emoji to prevent strange symbols */
+/* 
+.error:before {
+  content: "😿";
+  margin-right: 8px;
+  font-size: 16px;
+}
+*/
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+button {
+  padding: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  color: white;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+#forceClaimBtn {
+  background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+}
+
+#increaseTimerBtn {
+  background: linear-gradient(135deg, #2196f3 0%, #03a9f4 100%);
+}
+
+/* Fun loading animation for the values */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.value:contains("Loading...") {
+  animation: pulse 1.5s infinite;
+  background: linear-gradient(90deg, #f5f8ff, #e9f0ff, #f5f8ff);
+  background-size: 200% 100%;
+  animation: pulse 1.5s infinite;
+} 

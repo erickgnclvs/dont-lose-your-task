@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "dont lose your task",
+  "version": "0.1.0",
+  "description": "extracts taskId and attemptId from outlier task pages and provides claim actions to save your sorry ass.",
+  "permissions": [
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://app.outlier.ai/en/expert/tasks*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://app.outlier.ai/en/expert/tasks*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon.png",
+      "48": "images/icon.png",
+      "128": "images/icon.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon.png",
+    "48": "images/icon.png",
+    "128": "images/icon.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["injector.js"],
+      "matches": ["https://app.outlier.ai/*"]
+    }
+  ]
+} 
