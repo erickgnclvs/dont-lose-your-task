@@ -1,110 +1,134 @@
-// popup.js
-
 document.addEventListener('DOMContentLoaded', () => {
-  const taskIdElement = document.getElementById('taskId');
+
   const attemptIdElement = document.getElementById('attemptId');
   const forceClaimBtn = document.getElementById('forceClaimBtn');
-  const increaseTimerBtn = document.getElementById('increaseTimerBtn');
   const reloadBtn = document.getElementById('reloadBtn');
-  const errorMessageElement = document.getElementById('error-message');
   const errorContainer = document.getElementById('error-container');
+  const errorMessageElement = document.getElementById('error-message');
+  const historyToggle = document.getElementById('historyToggle');
+  const historyDropdown = document.getElementById('historyDropdown');
+  const historyList = document.getElementById('historyList');
+  const historyEmpty = document.getElementById('historyEmpty');
 
-  let currentTaskId = null;
   let currentAttemptId = null;
 
   function showError(message) {
-    taskIdElement.textContent = 'N/A';
     attemptIdElement.textContent = 'N/A';
     errorMessageElement.textContent = message;
     errorContainer.style.display = 'block';
     forceClaimBtn.disabled = true;
-    increaseTimerBtn.disabled = true;
   }
 
   function updatePopup(data) {
-    errorContainer.style.display = 'none'; // Hide error container if data is found
-    if (data.taskId) {
-      currentTaskId = data.taskId;
-      taskIdElement.textContent = data.taskId;
-      forceClaimBtn.disabled = false;
-    } else {
-      taskIdElement.textContent = 'Not found';
-      forceClaimBtn.disabled = true;
-    }
-
+    errorContainer.style.display = 'none';
+    
     if (data.attemptId) {
       currentAttemptId = data.attemptId;
       attemptIdElement.textContent = data.attemptId;
-      increaseTimerBtn.disabled = false;
+      forceClaimBtn.disabled = false;
     } else {
       attemptIdElement.textContent = 'Not found';
-      increaseTimerBtn.disabled = true;
-    }
-
-    if (!data.taskId && !data.attemptId) {
-      showError('Could not find Task or Attempt ID. Please refresh the page or navigate to a task.');
+      forceClaimBtn.disabled = true;
+      showError('No attempt ID found yet. Interact with the page or refresh.');
     }
   }
 
-  // Request the IDs from the background script when the popup opens
+  // Initialize popup
   chrome.runtime.sendMessage({ type: 'GET_IDS' }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error(chrome.runtime.lastError);
-      showError('Error communicating with background script.');
+    if (chrome.runtime.lastError || !response || !response.ids) {
+      showError('No task data found yet. Interact with the page or refresh.');
       return;
     }
-    if (response && response.ids) {
-      console.log('Received IDs from background:', response.ids);
-      updatePopup(response.ids);
-    } else {
-        console.log('No IDs received from background yet.');
-        showError('No task data found yet. Interact with the page or refresh.');
-    }
+    updatePopup(response.ids);
   });
+  
+  loadTaskHistory();
 
+  // Setup event handlers
   forceClaimBtn.addEventListener('click', () => {
-    if (currentTaskId) {
-      chrome.runtime.sendMessage({ type: 'FORCE_CLAIM', taskId: currentTaskId }, (response) => {
-         if (chrome.runtime.lastError) {
-             console.error("Error sending FORCE_CLAIM message:", chrome.runtime.lastError);
-         }
-         window.close(); // Close popup after action
-      });
-    } else {
-        console.error("Force Claim clicked but no Task ID available.");
-    }
-  });
-
-  increaseTimerBtn.addEventListener('click', () => {
     if (currentAttemptId) {
-      chrome.runtime.sendMessage({ type: 'INCREASE_TIMER', attemptId: currentAttemptId }, (response) => {
-         if (chrome.runtime.lastError) {
-             console.error("Error sending INCREASE_TIMER message:", chrome.runtime.lastError);
-         }
-          window.close(); // Close popup after action
-      });
-    } else {
-        console.error("Increase Timer clicked but no Attempt ID available.");
+      chrome.runtime.sendMessage({ 
+        type: 'FORCE_CLAIM', 
+        attemptId: currentAttemptId 
+      }, () => window.close());
     }
   });
 
-  // Add event listener for the reload button
   reloadBtn.addEventListener('click', () => {
-    // Get the current active tab
     chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
       if (tabs[0]) {
-        // Use the standard browser reload - this is indistinguishable from manual reload
         chrome.tabs.reload(tabs[0].id);
-        window.close(); // Close popup after initiating reload
+        window.close();
       }
     });
   });
 
-  // Optional: Listen for updates from the background script while popup is open
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Toggle history dropdown
+  historyToggle.addEventListener('click', () => {
+    const isVisible = historyDropdown.style.display !== 'none';
+    historyDropdown.style.display = isVisible ? 'none' : 'block';
+    historyToggle.querySelector('.history-toggle-icon').innerHTML = isVisible ? '&darr;' : '&uarr;';
+  });
+  
+  function loadTaskHistory() {
+    chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (response) => {
+      if (chrome.runtime.lastError) return;
+      updateHistoryDisplay(response.history || []);
+    });
+  }
+  
+  function updateHistoryDisplay(history) {
+    historyList.innerHTML = '';
+    
+    if (history.length === 0) {
+      historyEmpty.style.display = 'block';
+      return;
+    }
+    
+    historyEmpty.style.display = 'none';
+    
+    // Keep only the most recent entry for each attemptId
+    const uniqueAttemptIds = new Set();
+    const filteredHistory = history.filter(item => {
+      if (uniqueAttemptIds.has(item.attemptId)) return false;
+      uniqueAttemptIds.add(item.attemptId);
+      return true;
+    });
+    
+    filteredHistory.forEach(item => {
+      const timestamp = new Date(item.timestamp);
+      const formattedDate = timestamp.toLocaleDateString('en-US', { 
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+      });
+      
+      const listItem = document.createElement('li');
+      listItem.className = 'history-item';
+      listItem.innerHTML = `
+        <div class="history-time">${formattedDate}</div>
+        <div class="history-item-row">
+          <div class="history-ids">
+            <span class="history-id-value">${item.attemptId}</span>
+          </div>
+          <div class="history-actions">
+            <button class="history-claim-btn" data-attempt-id="${item.attemptId}">Claim</button>
+          </div>
+        </div>
+      `;
+      
+      historyList.appendChild(listItem);
+      
+      listItem.querySelector('.history-claim-btn').addEventListener('click', (e) => {
+        const attemptId = e.target.getAttribute('data-attempt-id');
+        chrome.runtime.sendMessage({ type: 'FORCE_CLAIM', attemptId }, () => window.close());
+      });
+    });
+  }
+
+  // Listen for background updates
+  chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'UPDATE_IDS') {
-      console.log('Popup received ID update:', message.ids);
       updatePopup(message.ids);
+      loadTaskHistory();
     }
   });
 }); 

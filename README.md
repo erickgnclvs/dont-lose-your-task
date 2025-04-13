@@ -1,6 +1,6 @@
 😿 Don't lose your task
 
-tool to get attemptId and taskId
+tool to get attemptId and create claim url
 
 setup:
 

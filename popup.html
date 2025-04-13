@@ -13,12 +13,19 @@
   <div class="content">
     <div class="info-container">
       <div class="info-item">
-        <span class="label">Task ID:</span>
-        <span id="taskId" class="value">Loading...</span>
-      </div>
-      <div class="info-item">
         <span class="label">Attempt ID:</span>
         <span id="attemptId" class="value">Loading...</span>
+      </div>
+    </div>
+    
+    <div class="history-container">
+      <div class="history-header" id="historyToggle">
+        <span class="history-label">Task History</span>
+        <span class="history-toggle-icon">&darr;</span>
+      </div>
+      <div class="history-dropdown" id="historyDropdown" style="display: none;">
+        <div class="history-empty" id="historyEmpty">No history yet</div>
+        <ul class="history-list" id="historyList"></ul>
       </div>
     </div>
     
@@ -29,7 +36,6 @@
 
     <div class="buttons">
       <button id="forceClaimBtn" disabled>Force Claim</button>
-      <button id="increaseTimerBtn" disabled>Increase Timer</button>
     </div>
   </div>
 
