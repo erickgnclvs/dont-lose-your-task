@@ -1,41 +1,52 @@
+const CONFIG = {
+  MAX_HISTORY_ITEMS: 10,
+  KEEP_ALIVE_INTERVAL: 25000,
+  OUTLIER_BASE_URL: 'https://app.outlier.ai',
+  OUTLIER_TASKS_PATH: '/en/expert/tasks',
+  ATTEMPT_ID_REGEX: /[?&](attemptId|assignmentId)=([^&]+)/
+};
+
+const MESSAGE_TYPES = {
+  GET_IDS: 'GET_IDS',
+  GET_HISTORY: 'GET_HISTORY',
+  FORCE_CLAIM: 'FORCE_CLAIM',
+  UPDATE_IDS: 'UPDATE_IDS'
+};
+
 // Store data per tab (tabId -> attemptId mapping)
 const tabData = {};
-const MAX_HISTORY_ITEMS = 10;
-// Extract attemptId from Outlier URLs
-const attemptIdRegex = /[?&](attemptId|assignmentId)=([^&]+)/;
 
-// Keep-alive mechanism to prevent service worker from being terminated
 function setupKeepAlive() {
   setInterval(() => {
-    // Perform minimal action to keep service worker alive
     chrome.storage.local.get('lastActive', () => {
       chrome.storage.local.set({ lastActive: Date.now() });
     });
-  }, 25000);
+  }, CONFIG.KEEP_ALIVE_INTERVAL);
 }
 
-// Start keep-alive as soon as background script loads
 setupKeepAlive();
 
 // Monitor network requests to capture attemptId automatically
 chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
     if (details.method === 'GET' && details.tabId > 0) {
-      const attemptIdMatch = details.url.match(attemptIdRegex);
+      const attemptIdMatch = details.url.match(CONFIG.ATTEMPT_ID_REGEX);
       if (attemptIdMatch && attemptIdMatch[2]) {
         updateTabData(details.tabId, { attemptId: attemptIdMatch[2] });
       }
     }
     return { cancel: false };
   },
-  { urls: ['https://app.outlier.ai/*'] }
+  { urls: [`${CONFIG.OUTLIER_BASE_URL}/*`] }
 );
 
-// Update tab data and notify UI of changes
 function updateTabData(tabId, data) {
+  // Initialize tab data if it doesn't exist
   if (!tabData[tabId]) {
     tabData[tabId] = {};
   }
+  
+  // Update tab data with new values
   Object.assign(tabData[tabId], data);
 
   // Save to history if we have an attemptId
@@ -44,10 +55,18 @@ function updateTabData(tabId, data) {
   }
 
   // Notify any open popup about the data update
-  chrome.runtime.sendMessage({ type: 'UPDATE_IDS', ids: tabData[tabId] }).catch(() => {});
+  notifyUiOfDataChange(tabData[tabId]);
 }
 
-// Add task to persistent history
+function notifyUiOfDataChange(data) {
+  chrome.runtime.sendMessage({ 
+    type: MESSAGE_TYPES.UPDATE_IDS, 
+    ids: data 
+  }).catch(() => {
+    // Ignore errors from no listeners
+  });
+}
+
 function addToHistory(data) {
   if (!data.attemptId) return;
   
@@ -66,8 +85,8 @@ function addToHistory(data) {
       history.unshift(newEntry);
       
       // Limit history size
-      if (history.length > MAX_HISTORY_ITEMS) {
-        history = history.slice(0, MAX_HISTORY_ITEMS);
+      if (history.length > CONFIG.MAX_HISTORY_ITEMS) {
+        history = history.slice(0, CONFIG.MAX_HISTORY_ITEMS);
       }
       
       chrome.storage.local.set({ taskHistory: history });
@@ -75,49 +94,60 @@ function addToHistory(data) {
   });
 }
 
-// Handle messages from popup
+// Handle messages from the popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  let tabId = sender.tab?.id;
-
-  // Handle different message types
-  if (message.type === 'GET_IDS') {
-     // Provide IDs to popup for current active tab
-     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-       const currentTabId = tabs[0]?.id;
-       if (currentTabId && tabData[currentTabId]) {
-         sendResponse({ ids: tabData[currentTabId] });
-       } else {
-         sendResponse({ ids: { attemptId: null } });
-       }
-     });
-     return true; // async response
-  } else if (message.type === 'GET_HISTORY') {
-     // Provide saved task history to popup
-     chrome.storage.local.get(['taskHistory'], (result) => {
-       const history = result.taskHistory || [];
-       sendResponse({ history });
-     });
-     return true; // async response
-
-  } else if (message.type === 'FORCE_CLAIM') {
-    // Navigate to force claim URL for the specified task
-    if (message.attemptId) {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-           const currentTabId = tabs[0]?.id;
-           if(currentTabId){
-               const newUrl = `https://app.outlier.ai/en/expert/tasks?forceClaim=1&pipelineV3HumanNodeId=${message.attemptId}`;
-               chrome.tabs.update(currentTabId, { url: newUrl });
-               sendResponse({status: "Navigated to force claim"});
-           } else {
-               sendResponse({status: "Error: could not get current tab"});
-           }
-       });
-       return true; // async response
-    } else {
-        sendResponse({status: "Error: Missing attemptId"});
-    }
+  const messageHandlers = {
+    [MESSAGE_TYPES.GET_IDS]: handleGetIds,
+    [MESSAGE_TYPES.GET_HISTORY]: handleGetHistory,
+    [MESSAGE_TYPES.FORCE_CLAIM]: handleForceClaim
+  };
+  
+  const handler = messageHandlers[message.type];
+  if (handler) {
+    return handler(message, sender, sendResponse);
   }
- });
+  
+  return false;
+});
+
+function handleGetIds(message, sender, sendResponse) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTabId = tabs[0]?.id;
+    if (currentTabId && tabData[currentTabId]) {
+      sendResponse({ ids: tabData[currentTabId] });
+    } else {
+      sendResponse({ ids: { attemptId: null } });
+    }
+  });
+  return true; // async response
+}
+
+function handleGetHistory(message, sender, sendResponse) {
+  chrome.storage.local.get(['taskHistory'], (result) => {
+    const history = result.taskHistory || [];
+    sendResponse({ history });
+  });
+  return true; // async response
+}
+
+function handleForceClaim(message, sender, sendResponse) {
+  if (!message.attemptId) {
+    sendResponse({status: "Error: Missing attemptId"});
+    return false;
+  }
+  
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const currentTabId = tabs[0]?.id;
+    if(currentTabId) {
+      const newUrl = `${CONFIG.OUTLIER_BASE_URL}${CONFIG.OUTLIER_TASKS_PATH}?forceClaim=1&pipelineV3HumanNodeId=${message.attemptId}`;
+      chrome.tabs.update(currentTabId, { url: newUrl });
+      sendResponse({status: "Navigated to force claim"});
+    } else {
+      sendResponse({status: "Error: could not get current tab"});
+    }
+  });
+  return true; // async response
+}
 
 // Clean up tab data when a tab is closed
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -129,11 +159,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // Clean up data when tab navigates away from Outlier tasks page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.url && tabData[tabId]) {
-    if (!changeInfo.url.startsWith("https://app.outlier.ai/en/expert/tasks")) {
-        delete tabData[tabId];
-        chrome.runtime.sendMessage({ type: 'UPDATE_IDS', ids: { attemptId: null } }).catch(() => {});
+    const fullTasksPath = `${CONFIG.OUTLIER_BASE_URL}${CONFIG.OUTLIER_TASKS_PATH}`;
+    if (!changeInfo.url.startsWith(fullTasksPath)) {
+      delete tabData[tabId];
+      notifyUiOfDataChange({ attemptId: null });
     }
   }
 });
-
- 
