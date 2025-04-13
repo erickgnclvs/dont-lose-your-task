@@ -5,7 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const attemptIdElement = document.getElementById('attemptId');
   const forceClaimBtn = document.getElementById('forceClaimBtn');
   const increaseTimerBtn = document.getElementById('increaseTimerBtn');
+  const reloadBtn = document.getElementById('reloadBtn');
   const errorMessageElement = document.getElementById('error-message');
+  const errorContainer = document.getElementById('error-container');
 
   let currentTaskId = null;
   let currentAttemptId = null;
@@ -14,13 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
     taskIdElement.textContent = 'N/A';
     attemptIdElement.textContent = 'N/A';
     errorMessageElement.textContent = message;
-    errorMessageElement.style.display = 'block';
+    errorContainer.style.display = 'block';
     forceClaimBtn.disabled = true;
     increaseTimerBtn.disabled = true;
   }
 
   function updatePopup(data) {
-    errorMessageElement.style.display = 'none'; // Hide error if data is found
+    errorContainer.style.display = 'none'; // Hide error container if data is found
     if (data.taskId) {
       currentTaskId = data.taskId;
       taskIdElement.textContent = data.taskId;
@@ -84,6 +86,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error("Increase Timer clicked but no Attempt ID available.");
     }
+  });
+
+  // Add event listener for the reload button
+  reloadBtn.addEventListener('click', () => {
+    // Get the current active tab
+    chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+      if (tabs[0]) {
+        // Use the standard browser reload - this is indistinguishable from manual reload
+        chrome.tabs.reload(tabs[0].id);
+        window.close(); // Close popup after initiating reload
+      }
+    });
   });
 
   // Optional: Listen for updates from the background script while popup is open

@@ -79,18 +79,21 @@ h3 {
   border: 1px solid #e0e9ff;
 }
 
-.error {
-  color: #e74c3c;
-  font-style: italic;
+#error-container {
   margin-top: 5px;
-  margin-bottom: 10px;
-  padding: 10px;
+  margin-bottom: 15px;
   background-color: #ffeaea;
   border: 1px solid #ffcccb;
   border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+}
+
+.error {
+  color: #e74c3c;
+  font-style: italic;
   font-size: 12px;
-  display: flex;
-  align-items: center;
+  margin-bottom: 8px;
 }
 
 /* Removed emoji to prevent strange symbols */
@@ -142,6 +145,19 @@ button:disabled {
 
 #increaseTimerBtn {
   background: linear-gradient(135deg, #2196f3 0%, #03a9f4 100%);
+}
+
+#reloadBtn {
+  background: linear-gradient(135deg, #f44336 0%, #ff5722 100%);
+  width: 100%;
+  margin-top: 2px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.error-action {
+  color: white;
+  display: block;
 }
 
 /* Fun loading animation for the values */

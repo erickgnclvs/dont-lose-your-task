@@ -9,14 +9,14 @@
     "storage"
   ],
   "host_permissions": [
-    "https://app.outlier.ai/en/expert/tasks*"
+    "https://app.outlier.ai/*/tasks*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js" 
   },
   "content_scripts": [
     {
-      "matches": ["https://app.outlier.ai/en/expert/tasks*"],
+      "matches": ["https://app.outlier.ai/*/tasks*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
@@ -37,7 +37,7 @@
   "web_accessible_resources": [
     {
       "resources": ["injector.js"],
-      "matches": ["https://app.outlier.ai/*"]
+      "matches": ["https://app.outlier.ai/*/tasks*"]
     }
   ]
 } 
